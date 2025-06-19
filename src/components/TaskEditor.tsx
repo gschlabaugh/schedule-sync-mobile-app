@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface TaskEditorProps {
   task?: Task | null;
@@ -15,12 +16,35 @@ interface TaskEditorProps {
   onCancel: () => void;
 }
 
+const TASK_COLORS = [
+  '#3B82F6', // Blue
+  '#EF4444', // Red
+  '#10B981', // Green
+  '#F59E0B', // Yellow
+  '#8B5CF6', // Purple
+  '#F97316', // Orange
+  '#06B6D4', // Cyan
+  '#84CC16', // Lime
+];
+
+const WEEKDAYS = [
+  { value: 1, label: 'Monday' },
+  { value: 2, label: 'Tuesday' },
+  { value: 3, label: 'Wednesday' },
+  { value: 4, label: 'Thursday' },
+  { value: 5, label: 'Friday' },
+  { value: 6, label: 'Saturday' },
+  { value: 0, label: 'Sunday' },
+];
+
 export const TaskEditor = ({ task, onSave, onCancel }: TaskEditorProps) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [duration, setDuration] = useState(30);
-  const [recurrenceType, setRecurrenceType] = useState<'none' | 'daily' | 'weekly' | 'monthly'>('none');
+  const [recurrenceType, setRecurrenceType] = useState<'none' | 'daily' | 'weekly' | 'monthly' | 'weekdays'>('none');
   const [recurrenceInterval, setRecurrenceInterval] = useState(1);
+  const [selectedWeekdays, setSelectedWeekdays] = useState<number[]>([]);
+  const [color, setColor] = useState(TASK_COLORS[0]);
 
   useEffect(() => {
     if (task) {
@@ -29,8 +53,18 @@ export const TaskEditor = ({ task, onSave, onCancel }: TaskEditorProps) => {
       setDuration(task.duration);
       setRecurrenceType(task.recurrence?.type || 'none');
       setRecurrenceInterval(task.recurrence?.interval || 1);
+      setSelectedWeekdays(task.recurrence?.weekdays || []);
+      setColor(task.color);
     }
   }, [task]);
+
+  const handleWeekdayToggle = (weekday: number) => {
+    setSelectedWeekdays(prev => 
+      prev.includes(weekday) 
+        ? prev.filter(w => w !== weekday)
+        : [...prev, weekday]
+    );
+  };
 
   const handleSave = () => {
     if (!title.trim()) return;
@@ -40,9 +74,11 @@ export const TaskEditor = ({ task, onSave, onCancel }: TaskEditorProps) => {
       description: description.trim() || undefined,
       duration,
       scheduledDate: task?.scheduledDate,
+      color,
       recurrence: recurrenceType !== 'none' ? {
         type: recurrenceType,
         interval: recurrenceInterval,
+        weekdays: recurrenceType === 'weekdays' ? selectedWeekdays : undefined,
       } : undefined,
     };
 
@@ -107,6 +143,22 @@ export const TaskEditor = ({ task, onSave, onCancel }: TaskEditorProps) => {
             </div>
 
             <div>
+              <Label>Color</Label>
+              <div className="flex gap-2 mt-2">
+                {TASK_COLORS.map((taskColor) => (
+                  <button
+                    key={taskColor}
+                    className={`w-8 h-8 rounded-full border-2 ${
+                      color === taskColor ? 'border-gray-400' : 'border-gray-200'
+                    }`}
+                    style={{ backgroundColor: taskColor }}
+                    onClick={() => setColor(taskColor)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div>
               <Label htmlFor="recurrence">Recurrence</Label>
               <Select value={recurrenceType} onValueChange={(value: any) => setRecurrenceType(value)}>
                 <SelectTrigger className="mt-1">
@@ -117,11 +169,32 @@ export const TaskEditor = ({ task, onSave, onCancel }: TaskEditorProps) => {
                   <SelectItem value="daily">Daily</SelectItem>
                   <SelectItem value="weekly">Weekly</SelectItem>
                   <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="weekdays">Specific weekdays</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            {recurrenceType !== 'none' && (
+            {recurrenceType === 'weekdays' && (
+              <div>
+                <Label>Select days of the week</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {WEEKDAYS.map((weekday) => (
+                    <div key={weekday.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`weekday-${weekday.value}`}
+                        checked={selectedWeekdays.includes(weekday.value)}
+                        onCheckedChange={() => handleWeekdayToggle(weekday.value)}
+                      />
+                      <Label htmlFor={`weekday-${weekday.value}`} className="text-sm">
+                        {weekday.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {recurrenceType !== 'none' && recurrenceType !== 'weekdays' && (
               <div>
                 <Label htmlFor="interval">Every</Label>
                 <Select value={recurrenceInterval.toString()} onValueChange={(value) => setRecurrenceInterval(parseInt(value))}>

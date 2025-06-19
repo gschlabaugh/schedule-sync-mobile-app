@@ -1,9 +1,15 @@
 
 import { useState } from "react";
 import { Task } from "@/hooks/useTasks";
-import { ChevronLeft, ChevronRight, Clock, CheckCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, CheckCircle, MoreVertical, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { format, addDays, subDays, startOfDay, addMinutes, isSameDay } from "date-fns";
 
 interface CalendarViewProps {
@@ -11,9 +17,10 @@ interface CalendarViewProps {
   onScheduleTask: (taskId: string, dateTime: Date) => void;
   onEditTask: (task: Task) => void;
   onCompleteTask: (taskId: string) => void;
+  onUnscheduleTask: (taskId: string) => void;
 }
 
-export const CalendarView = ({ tasks, onScheduleTask, onEditTask, onCompleteTask }: CalendarViewProps) => {
+export const CalendarView = ({ tasks, onScheduleTask, onEditTask, onCompleteTask, onUnscheduleTask }: CalendarViewProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const scheduledTasks = tasks.filter(task => 
@@ -24,9 +31,11 @@ export const CalendarView = ({ tasks, onScheduleTask, onEditTask, onCompleteTask
 
   const timeSlots = Array.from({ length: 24 }, (_, i) => {
     const hour = i;
+    const date = addMinutes(startOfDay(currentDate), hour * 60);
+    const timeLabel = format(date, 'h:mm a');
     return {
-      time: `${hour.toString().padStart(2, '0')}:00`,
-      dateTime: addMinutes(startOfDay(currentDate), hour * 60),
+      time: timeLabel,
+      dateTime: date,
     };
   });
 
@@ -41,6 +50,7 @@ export const CalendarView = ({ tasks, onScheduleTask, onEditTask, onCompleteTask
 
   const handleDragStart = (e: React.DragEvent, task: Task) => {
     e.dataTransfer.setData('text/plain', task.id);
+    e.dataTransfer.setData('application/task-source', task.scheduledDate ? 'scheduled' : 'unscheduled');
   };
 
   const handleDrop = (e: React.DragEvent, dateTime: Date) => {
@@ -53,6 +63,10 @@ export const CalendarView = ({ tasks, onScheduleTask, onEditTask, onCompleteTask
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+  };
+
+  const handleUnscheduleTask = (taskId: string) => {
+    onUnscheduleTask(taskId);
   };
 
   return (
@@ -90,12 +104,17 @@ export const CalendarView = ({ tasks, onScheduleTask, onEditTask, onCompleteTask
                 key={task.id}
                 draggable
                 onDragStart={(e) => handleDragStart(e, task)}
-                className="flex-shrink-0 p-3 bg-blue-50 border-blue-200 cursor-move min-w-[150px]"
+                onClick={() => onEditTask(task)}
+                className={`flex-shrink-0 p-3 border-2 cursor-move min-w-[150px]`}
+                style={{ 
+                  backgroundColor: `${task.color}20`,
+                  borderColor: task.color
+                }}
               >
-                <div className="text-sm font-medium text-blue-900 truncate">
+                <div className="text-sm font-medium truncate" style={{ color: task.color }}>
                   {task.title}
                 </div>
-                <div className="text-xs text-blue-600 flex items-center gap-1 mt-1">
+                <div className="text-xs flex items-center gap-1 mt-1" style={{ color: task.color }}>
                   <Clock className="h-3 w-3" />
                   {task.duration} min
                 </div>
@@ -117,19 +136,27 @@ export const CalendarView = ({ tasks, onScheduleTask, onEditTask, onCompleteTask
               onDrop={(e) => handleDrop(e, slot.dateTime)}
               onDragOver={handleDragOver}
             >
-              <div className="w-16 text-sm text-gray-500 text-right">
+              <div className="w-20 text-sm text-gray-500 text-right">
                 {slot.time}
               </div>
               
               <div className="flex-1">
                 {existingTask ? (
-                  <Card className="p-3 bg-green-50 border-green-200">
+                  <Card 
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, existingTask)}
+                    className="p-3 border-2 cursor-move"
+                    style={{ 
+                      backgroundColor: `${existingTask.color}20`,
+                      borderColor: existingTask.color
+                    }}
+                  >
                     <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-green-900">
+                      <div className="flex-1" onClick={() => onEditTask(existingTask)}>
+                        <div className="text-sm font-medium" style={{ color: existingTask.color }}>
                           {existingTask.title}
                         </div>
-                        <div className="text-xs text-green-600 flex items-center gap-1 mt-1">
+                        <div className="text-xs flex items-center gap-1 mt-1" style={{ color: existingTask.color }}>
                           <Clock className="h-3 w-3" />
                           {existingTask.duration} min
                         </div>
@@ -139,10 +166,25 @@ export const CalendarView = ({ tasks, onScheduleTask, onEditTask, onCompleteTask
                           variant="ghost"
                           size="sm"
                           onClick={() => onCompleteTask(existingTask.id)}
-                          className="text-green-600 hover:text-green-700 p-1 h-8 w-8"
+                          className="p-1 h-8 w-8"
+                          style={{ color: existingTask.color }}
                         >
                           <CheckCircle className="h-4 w-4" />
                         </Button>
+                        
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="p-1 h-8 w-8">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-white">
+                            <DropdownMenuItem onClick={() => handleUnscheduleTask(existingTask.id)}>
+                              <X className="h-4 w-4 mr-2" />
+                              Unschedule
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   </Card>

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Calendar, CheckSquare, Plus } from "lucide-react";
 import { TaskList } from "@/components/TaskList";
@@ -11,7 +10,7 @@ import { useTasks } from "@/hooks/useTasks";
 const Index = () => {
   const [showTaskEditor, setShowTaskEditor] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const { tasks, addTask, updateTask, deleteTask, scheduleTask } = useTasks();
+  const { tasks, addTask, updateTask, deleteTask, scheduleTask, unscheduleTask } = useTasks();
 
   const handleAddTask = () => {
     setEditingTask(null);
@@ -43,6 +42,10 @@ const Index = () => {
 
   const handleCompleteTask = (taskId) => {
     updateTask(taskId, { completed: true });
+  };
+
+  const handleUnscheduleTask = (taskId) => {
+    unscheduleTask(taskId);
   };
 
   return (
@@ -90,6 +93,7 @@ const Index = () => {
               onScheduleTask={handleScheduleTask}
               onEditTask={handleEditTask}
               onCompleteTask={handleCompleteTask}
+              onUnscheduleTask={handleUnscheduleTask}
             />
           </TabsContent>
         </Tabs>

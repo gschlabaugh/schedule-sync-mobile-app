@@ -7,12 +7,14 @@ export interface Task {
   description?: string;
   duration: number; // in minutes
   recurrence?: {
-    type: 'daily' | 'weekly' | 'monthly';
+    type: 'daily' | 'weekly' | 'monthly' | 'weekdays';
     interval: number;
+    weekdays?: number[]; // 0 = Sunday, 1 = Monday, etc.
   };
   scheduledDate?: Date;
   completed: boolean;
   createdAt: Date;
+  color: string;
 }
 
 export const useTasks = () => {
@@ -60,11 +62,16 @@ export const useTasks = () => {
     updateTask(id, { scheduledDate: dateTime });
   };
 
+  const unscheduleTask = (id: string) => {
+    updateTask(id, { scheduledDate: undefined });
+  };
+
   return {
     tasks,
     addTask,
     updateTask,
     deleteTask,
     scheduleTask,
+    unscheduleTask,
   };
 };

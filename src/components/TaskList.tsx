@@ -31,10 +31,17 @@ export const TaskList = ({ tasks, onEditTask, onDeleteTask, onCompleteTask }: Ta
   return (
     <div className="space-y-3">
       {tasks.map((task) => (
-        <Card key={task.id} className="p-4 bg-white border border-gray-200 shadow-sm">
+        <Card 
+          key={task.id} 
+          className="p-4 border-2 shadow-sm"
+          style={{ 
+            backgroundColor: `${task.color}10`,
+            borderColor: `${task.color}40`
+          }}
+        >
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-medium text-gray-900 truncate">
+              <h3 className="text-sm font-medium truncate" style={{ color: task.color }}>
                 {task.title}
               </h3>
               {task.description && (
@@ -43,13 +50,21 @@ export const TaskList = ({ tasks, onEditTask, onDeleteTask, onCompleteTask }: Ta
                 </p>
               )}
               <div className="flex items-center gap-3 mt-2">
-                <div className="flex items-center gap-1 text-xs text-gray-500">
+                <div className="flex items-center gap-1 text-xs" style={{ color: task.color }}>
                   <Clock className="h-3 w-3" />
                   {task.duration} min
                 </div>
                 {task.recurrence && (
-                  <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
-                    {task.recurrence.type}
+                  <div 
+                    className="text-xs px-2 py-1 rounded-full"
+                    style={{ 
+                      backgroundColor: `${task.color}20`,
+                      color: task.color
+                    }}
+                  >
+                    {task.recurrence.type === 'weekdays' && task.recurrence.weekdays
+                      ? `${task.recurrence.weekdays.length} weekdays`
+                      : task.recurrence.type}
                   </div>
                 )}
               </div>
@@ -60,7 +75,8 @@ export const TaskList = ({ tasks, onEditTask, onDeleteTask, onCompleteTask }: Ta
                 variant="ghost"
                 size="sm"
                 onClick={() => onCompleteTask(task.id)}
-                className="text-green-600 hover:text-green-700 hover:bg-green-50 p-1 h-8 w-8"
+                className="p-1 h-8 w-8"
+                style={{ color: task.color }}
               >
                 <CheckCircle className="h-4 w-4" />
               </Button>
