@@ -85,6 +85,20 @@ export const TaskEditor = ({ task, onSave, onCancel }: TaskEditorProps) => {
     onSave(taskData);
   };
 
+  // Generate duration options from 15 minutes to 8 hours in 30-minute increments
+  const durationOptions = [
+    { value: 15, label: '15 minutes' },
+    { value: 30, label: '30 minutes' },
+    { value: 45, label: '45 minutes' },
+    ...Array.from({ length: 16 }, (_, i) => {
+      const hours = Math.floor((i + 2) / 2);
+      const minutes = ((i + 2) % 2) * 30;
+      const totalMinutes = hours * 60 + minutes;
+      const label = minutes === 0 ? `${hours} hour${hours > 1 ? 's' : ''}` : `${hours}.5 hours`;
+      return { value: totalMinutes, label };
+    })
+  ];
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-4">
       <Card className="w-full max-w-md bg-white rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
@@ -125,19 +139,17 @@ export const TaskEditor = ({ task, onSave, onCancel }: TaskEditorProps) => {
             </div>
 
             <div>
-              <Label htmlFor="duration">Duration (minutes)</Label>
+              <Label htmlFor="duration">Duration</Label>
               <Select value={duration.toString()} onValueChange={(value) => setDuration(parseInt(value))}>
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="15">15 minutes</SelectItem>
-                  <SelectItem value="30">30 minutes</SelectItem>
-                  <SelectItem value="45">45 minutes</SelectItem>
-                  <SelectItem value="60">1 hour</SelectItem>
-                  <SelectItem value="90">1.5 hours</SelectItem>
-                  <SelectItem value="120">2 hours</SelectItem>
-                  <SelectItem value="180">3 hours</SelectItem>
+                <SelectContent className="max-h-60">
+                  {durationOptions.map(option => (
+                    <SelectItem key={option.value} value={option.value.toString()}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

@@ -43,26 +43,22 @@ export const useTasks = () => {
     localStorage.setItem('schedule-sync-tasks', JSON.stringify(tasks));
   }, [tasks]);
 
-  // Generate recurring task instances for today
+  // Generate recurring task instances for today only
   useEffect(() => {
     const today = startOfDay(new Date());
     const recurringTasks = tasks.filter(task => 
-      task.recurrence && !task.isRecurringInstance && !task.scheduledDate
+      task.recurrence && !task.isRecurringInstance
     );
 
     recurringTasks.forEach(parentTask => {
       const shouldCreateInstance = shouldCreateRecurringInstance(parentTask, today);
-      const existingInstance = tasks.find(task => 
-        task.parentTaskId === parentTask.id && 
-        task.scheduledDate && 
-        isSameDay(task.scheduledDate, today)
-      );
+      const todayInstanceId = `${parentTask.id}-${format(today, 'yyyy-MM-dd')}`;
+      const existingInstance = tasks.find(task => task.id === todayInstanceId);
 
       if (shouldCreateInstance && !existingInstance) {
-        const instanceId = `${parentTask.id}-${format(today, 'yyyy-MM-dd')}`;
         const instance: Task = {
           ...parentTask,
-          id: instanceId,
+          id: todayInstanceId,
           parentTaskId: parentTask.id,
           isRecurringInstance: true,
           scheduledDate: undefined,
@@ -72,7 +68,7 @@ export const useTasks = () => {
         setTasks(prev => [...prev, instance]);
       }
     });
-  }, [tasks]);
+  }, []);
 
   const shouldCreateRecurringInstance = (task: Task, date: Date): boolean => {
     if (!task.recurrence) return false;
@@ -122,10 +118,13 @@ export const useTasks = () => {
   };
 
   const completeTask = (id: string) => {
-    updateTask(id, { 
-      completed: true, 
-      completedAt: new Date() 
-    });
+    const task = tasks.find(t => t.id === id);
+    if (task) {
+      updateTask(id, { 
+        completed: !task.completed, 
+        completedAt: !task.completed ? new Date() : undefined 
+      });
+    }
   };
 
   const getTaskStats = () => {
