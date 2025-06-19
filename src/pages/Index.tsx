@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { Calendar, CheckSquare, Plus } from "lucide-react";
+import { Calendar, CheckSquare, Plus, BarChart3, List, CalendarDays } from "lucide-react";
 import { TaskList } from "@/components/TaskList";
 import { CalendarView } from "@/components/CalendarView";
+import { MonthlyView } from "@/components/MonthlyView";
+import { ScheduledTasks } from "@/components/ScheduledTasks";
+import { TaskStats } from "@/components/TaskStats";
 import { TaskEditor } from "@/components/TaskEditor";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,7 +13,7 @@ import { useTasks } from "@/hooks/useTasks";
 const Index = () => {
   const [showTaskEditor, setShowTaskEditor] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const { tasks, addTask, updateTask, deleteTask, scheduleTask, unscheduleTask } = useTasks();
+  const { tasks, addTask, updateTask, deleteTask, scheduleTask, unscheduleTask, completeTask, getTaskStats } = useTasks();
 
   const handleAddTask = () => {
     setEditingTask(null);
@@ -41,7 +44,7 @@ const Index = () => {
   };
 
   const handleCompleteTask = (taskId) => {
-    updateTask(taskId, { completed: true });
+    completeTask(taskId);
   };
 
   const handleUnscheduleTask = (taskId) => {
@@ -67,14 +70,26 @@ const Index = () => {
       {/* Main Content */}
       <div className="px-4 py-4">
         <Tabs defaultValue="tasks" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="tasks" className="flex items-center gap-2">
-              <CheckSquare className="h-4 w-4" />
+          <TabsList className="grid w-full grid-cols-5 mb-6">
+            <TabsTrigger value="tasks" className="flex items-center gap-1 text-xs">
+              <List className="h-3 w-3" />
               Tasks
             </TabsTrigger>
-            <TabsTrigger value="calendar" className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Calendar
+            <TabsTrigger value="calendar" className="flex items-center gap-1 text-xs">
+              <Calendar className="h-3 w-3" />
+              Daily
+            </TabsTrigger>
+            <TabsTrigger value="monthly" className="flex items-center gap-1 text-xs">
+              <CalendarDays className="h-3 w-3" />
+              Monthly
+            </TabsTrigger>
+            <TabsTrigger value="scheduled" className="flex items-center gap-1 text-xs">
+              <CheckSquare className="h-3 w-3" />
+              Scheduled
+            </TabsTrigger>
+            <TabsTrigger value="stats" className="flex items-center gap-1 text-xs">
+              <BarChart3 className="h-3 w-3" />
+              Stats
             </TabsTrigger>
           </TabsList>
 
@@ -94,7 +109,29 @@ const Index = () => {
               onEditTask={handleEditTask}
               onCompleteTask={handleCompleteTask}
               onUnscheduleTask={handleUnscheduleTask}
+              onUpdateTask={updateTask}
             />
+          </TabsContent>
+
+          <TabsContent value="monthly" className="space-y-4">
+            <MonthlyView
+              tasks={tasks}
+              onScheduleTask={handleScheduleTask}
+              onEditTask={handleEditTask}
+            />
+          </TabsContent>
+
+          <TabsContent value="scheduled" className="space-y-4">
+            <ScheduledTasks
+              tasks={tasks.filter(task => task.scheduledDate)}
+              onEditTask={handleEditTask}
+              onCompleteTask={handleCompleteTask}
+              onUnscheduleTask={handleUnscheduleTask}
+            />
+          </TabsContent>
+
+          <TabsContent value="stats" className="space-y-4">
+            <TaskStats stats={getTaskStats()} />
           </TabsContent>
         </Tabs>
       </div>

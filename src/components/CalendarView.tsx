@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Task } from "@/hooks/useTasks";
 import { ChevronLeft, ChevronRight, Clock, CheckCircle, MoreVertical, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,10 +17,21 @@ interface CalendarViewProps {
   onEditTask: (task: Task) => void;
   onCompleteTask: (taskId: string) => void;
   onUnscheduleTask: (taskId: string) => void;
+  onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
 }
 
-export const CalendarView = ({ tasks, onScheduleTask, onEditTask, onCompleteTask, onUnscheduleTask }: CalendarViewProps) => {
+export const CalendarView = ({ 
+  tasks, 
+  onScheduleTask, 
+  onEditTask, 
+  onCompleteTask, 
+  onUnscheduleTask,
+  onUpdateTask 
+}: CalendarViewProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [resizing, setResizing] = useState<{ taskId: string; edge: 'top' | 'bottom' } | null>(null);
+  const resizeStartY = useRef<number>(0);
+  const originalDuration = useRef<number>(0);
 
   const scheduledTasks = tasks.filter(task => 
     task.scheduledDate && isSameDay(task.scheduledDate, currentDate)
@@ -69,8 +79,43 @@ export const CalendarView = ({ tasks, onScheduleTask, onEditTask, onCompleteTask
     onUnscheduleTask(taskId);
   };
 
+  const handleResizeStart = (e: React.MouseEvent, taskId: string, edge: 'top' | 'bottom') => {
+    e.stopPropagation();
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+      setResizing({ taskId, edge });
+      resizeStartY.current = e.clientY;
+      originalDuration.current = task.duration;
+    }
+  };
+
+  const handleResizeMove = (e: React.MouseEvent) => {
+    if (!resizing) return;
+    
+    const deltaY = e.clientY - resizeStartY.current;
+    const minutesPerPixel = 2; // Adjust sensitivity
+    const deltaMinutes = Math.round(deltaY * minutesPerPixel);
+    
+    let newDuration = originalDuration.current;
+    if (resizing.edge === 'bottom') {
+      newDuration = Math.max(15, originalDuration.current + deltaMinutes);
+    } else {
+      newDuration = Math.max(15, originalDuration.current - deltaMinutes);
+    }
+    
+    onUpdateTask(resizing.taskId, { duration: newDuration });
+  };
+
+  const handleResizeEnd = () => {
+    setResizing(null);
+  };
+
   return (
-    <div className="space-y-4">
+    <div 
+      className="space-y-4"
+      onMouseMove={handleResizeMove}
+      onMouseUp={handleResizeEnd}
+    >
       {/* Date Navigation */}
       <div className="flex items-center justify-between">
         <Button
@@ -105,14 +150,16 @@ export const CalendarView = ({ tasks, onScheduleTask, onEditTask, onCompleteTask
                 draggable
                 onDragStart={(e) => handleDragStart(e, task)}
                 onClick={() => onEditTask(task)}
-                className={`flex-shrink-0 p-3 border-2 cursor-move min-w-[150px]`}
+                className={`flex-shrink-0 p-3 border-2 cursor-move min-w-[150px] ${
+                  task.completed ? 'opacity-50' : ''
+                }`}
                 style={{ 
                   backgroundColor: `${task.color}20`,
                   borderColor: task.color
                 }}
               >
                 <div className="text-sm font-medium truncate" style={{ color: task.color }}>
-                  {task.title}
+                  {task.completed && '✓ '}{task.title}
                 </div>
                 <div className="text-xs flex items-center gap-1 mt-1" style={{ color: task.color }}>
                   <Clock className="h-3 w-3" />
@@ -145,16 +192,29 @@ export const CalendarView = ({ tasks, onScheduleTask, onEditTask, onCompleteTask
                   <Card 
                     draggable
                     onDragStart={(e) => handleDragStart(e, existingTask)}
-                    className="p-3 border-2 cursor-move"
+                    className={`p-3 border-2 cursor-move relative group ${
+                      existingTask.completed ? 'opacity-75' : ''
+                    }`}
                     style={{ 
                       backgroundColor: `${existingTask.color}20`,
-                      borderColor: existingTask.color
+                      borderColor: existingTask.color,
+                      height: `${Math.max(60, (existingTask.duration / 60) * 60)}px`
                     }}
                   >
-                    <div className="flex items-center justify-between">
+                    {/* Resize handles */}
+                    <div 
+                      className="absolute top-0 left-0 right-0 h-2 cursor-n-resize opacity-0 group-hover:opacity-100 bg-gray-300"
+                      onMouseDown={(e) => handleResizeStart(e, existingTask.id, 'top')}
+                    />
+                    <div 
+                      className="absolute bottom-0 left-0 right-0 h-2 cursor-s-resize opacity-0 group-hover:opacity-100 bg-gray-300"
+                      onMouseDown={(e) => handleResizeStart(e, existingTask.id, 'bottom')}
+                    />
+                    
+                    <div className="flex items-center justify-between h-full">
                       <div className="flex-1" onClick={() => onEditTask(existingTask)}>
                         <div className="text-sm font-medium" style={{ color: existingTask.color }}>
-                          {existingTask.title}
+                          {existingTask.completed && '✓ '}{existingTask.title}
                         </div>
                         <div className="text-xs flex items-center gap-1 mt-1" style={{ color: existingTask.color }}>
                           <Clock className="h-3 w-3" />
@@ -169,7 +229,7 @@ export const CalendarView = ({ tasks, onScheduleTask, onEditTask, onCompleteTask
                           className="p-1 h-8 w-8"
                           style={{ color: existingTask.color }}
                         >
-                          <CheckCircle className="h-4 w-4" />
+                          <CheckCircle className={`h-4 w-4 ${existingTask.completed ? 'fill-current' : ''}`} />
                         </Button>
                         
                         <DropdownMenu>

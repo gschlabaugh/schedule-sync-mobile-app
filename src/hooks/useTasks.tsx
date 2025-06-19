@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { startOfDay, isSameDay, addWeeks, addDays, addMonths, format } from "date-fns";
 
 export interface Task {
   id: string;
@@ -13,8 +14,11 @@ export interface Task {
   };
   scheduledDate?: Date;
   completed: boolean;
+  completedAt?: Date;
   createdAt: Date;
   color: string;
+  isRecurringInstance?: boolean;
+  parentTaskId?: string; // for recurring instances
 }
 
 export const useTasks = () => {
@@ -28,6 +32,7 @@ export const useTasks = () => {
         ...task,
         scheduledDate: task.scheduledDate ? new Date(task.scheduledDate) : undefined,
         createdAt: new Date(task.createdAt),
+        completedAt: task.completedAt ? new Date(task.completedAt) : undefined,
       }));
       setTasks(parsedTasks);
     }
@@ -37,6 +42,56 @@ export const useTasks = () => {
   useEffect(() => {
     localStorage.setItem('schedule-sync-tasks', JSON.stringify(tasks));
   }, [tasks]);
+
+  // Generate recurring task instances for today
+  useEffect(() => {
+    const today = startOfDay(new Date());
+    const recurringTasks = tasks.filter(task => 
+      task.recurrence && !task.isRecurringInstance && !task.scheduledDate
+    );
+
+    recurringTasks.forEach(parentTask => {
+      const shouldCreateInstance = shouldCreateRecurringInstance(parentTask, today);
+      const existingInstance = tasks.find(task => 
+        task.parentTaskId === parentTask.id && 
+        task.scheduledDate && 
+        isSameDay(task.scheduledDate, today)
+      );
+
+      if (shouldCreateInstance && !existingInstance) {
+        const instanceId = `${parentTask.id}-${format(today, 'yyyy-MM-dd')}`;
+        const instance: Task = {
+          ...parentTask,
+          id: instanceId,
+          parentTaskId: parentTask.id,
+          isRecurringInstance: true,
+          scheduledDate: undefined,
+          completed: false,
+          completedAt: undefined,
+        };
+        setTasks(prev => [...prev, instance]);
+      }
+    });
+  }, [tasks]);
+
+  const shouldCreateRecurringInstance = (task: Task, date: Date): boolean => {
+    if (!task.recurrence) return false;
+
+    const dayOfWeek = date.getDay();
+    
+    switch (task.recurrence.type) {
+      case 'daily':
+        return true;
+      case 'weekly':
+        return dayOfWeek === 1; // Create on Mondays for weekly tasks
+      case 'monthly':
+        return date.getDate() === 1; // Create on first of month
+      case 'weekdays':
+        return task.recurrence.weekdays?.includes(dayOfWeek) || false;
+      default:
+        return false;
+    }
+  };
 
   const addTask = (taskData: Omit<Task, 'id' | 'completed' | 'createdAt'>) => {
     const newTask: Task = {
@@ -55,7 +110,7 @@ export const useTasks = () => {
   };
 
   const deleteTask = (id: string) => {
-    setTasks(prev => prev.filter(task => task.id !== id));
+    setTasks(prev => prev.filter(task => task.id !== id && task.parentTaskId !== id));
   };
 
   const scheduleTask = (id: string, dateTime: Date) => {
@@ -66,6 +121,40 @@ export const useTasks = () => {
     updateTask(id, { scheduledDate: undefined });
   };
 
+  const completeTask = (id: string) => {
+    updateTask(id, { 
+      completed: true, 
+      completedAt: new Date() 
+    });
+  };
+
+  const getTaskStats = () => {
+    const allTasks = tasks.filter(task => !task.isRecurringInstance);
+    const completedTasks = tasks.filter(task => task.completed);
+    const scheduledTasks = tasks.filter(task => task.scheduledDate);
+    
+    const taskStats = allTasks.map(task => {
+      const instances = tasks.filter(t => t.parentTaskId === task.id || t.id === task.id);
+      const completedInstances = instances.filter(t => t.completed);
+      const scheduledInstances = instances.filter(t => t.scheduledDate);
+      
+      return {
+        task,
+        totalInstances: instances.length,
+        completedInstances: completedInstances.length,
+        scheduledInstances: scheduledInstances.length,
+        completionRate: instances.length > 0 ? completedInstances.length / instances.length : 0,
+      };
+    });
+
+    return {
+      totalTasks: allTasks.length,
+      completedTasks: completedTasks.length,
+      scheduledTasks: scheduledTasks.length,
+      taskStats,
+    };
+  };
+
   return {
     tasks,
     addTask,
@@ -73,5 +162,7 @@ export const useTasks = () => {
     deleteTask,
     scheduleTask,
     unscheduleTask,
+    completeTask,
+    getTaskStats,
   };
 };
