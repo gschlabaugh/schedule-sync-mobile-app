@@ -1,27 +1,36 @@
 import { useState } from "react";
-import { Calendar, CheckSquare, Plus, BarChart3, List, CalendarDays } from "lucide-react";
+import { Calendar, CheckSquare, BarChart3, List, CalendarDays } from "lucide-react";
 import { TaskList } from "@/components/TaskList";
 import { CalendarView } from "@/components/CalendarView";
 import { MonthlyView } from "@/components/MonthlyView";
 import { ScheduledTasks } from "@/components/ScheduledTasks";
 import { TaskStats } from "@/components/TaskStats";
 import { TaskEditor } from "@/components/TaskEditor";
-import { Button } from "@/components/ui/button";
+import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTasks } from "@/hooks/useTasks";
 
 const Index = () => {
   const [showTaskEditor, setShowTaskEditor] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+  const [scheduledDateTime, setScheduledDateTime] = useState<Date | null>(null);
   const { tasks, addTask, updateTask, deleteTask, scheduleTask, unscheduleTask, completeTask, getTaskStats } = useTasks();
 
   const handleAddTask = () => {
     setEditingTask(null);
+    setScheduledDateTime(null);
+    setShowTaskEditor(true);
+  };
+
+  const handleCreateTask = (dateTime?: Date) => {
+    setEditingTask(null);
+    setScheduledDateTime(dateTime || null);
     setShowTaskEditor(true);
   };
 
   const handleEditTask = (task) => {
     setEditingTask(task);
+    setScheduledDateTime(null);
     setShowTaskEditor(true);
   };
 
@@ -29,10 +38,14 @@ const Index = () => {
     if (editingTask) {
       updateTask(editingTask.id, taskData);
     } else {
-      addTask(taskData);
+      const newTaskData = scheduledDateTime 
+        ? { ...taskData, scheduledDate: scheduledDateTime }
+        : taskData;
+      addTask(newTaskData);
     }
     setShowTaskEditor(false);
     setEditingTask(null);
+    setScheduledDateTime(null);
   };
 
   const handleDeleteTask = (taskId) => {
@@ -57,13 +70,6 @@ const Index = () => {
       <div className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold text-gray-900">Schedule Sync</h1>
-          <Button
-            onClick={handleAddTask}
-            size="sm"
-            className="bg-blue-500 hover:bg-blue-600 text-white rounded-full"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
         </div>
       </div>
 
@@ -110,6 +116,7 @@ const Index = () => {
               onCompleteTask={handleCompleteTask}
               onUnscheduleTask={handleUnscheduleTask}
               onUpdateTask={updateTask}
+              onCreateTask={handleCreateTask}
             />
           </TabsContent>
 
@@ -136,6 +143,9 @@ const Index = () => {
         </Tabs>
       </div>
 
+      {/* Floating Action Button */}
+      <FloatingActionButton onClick={handleAddTask} />
+
       {/* Task Editor Modal */}
       {showTaskEditor && (
         <TaskEditor
@@ -144,6 +154,7 @@ const Index = () => {
           onCancel={() => {
             setShowTaskEditor(false);
             setEditingTask(null);
+            setScheduledDateTime(null);
           }}
         />
       )}

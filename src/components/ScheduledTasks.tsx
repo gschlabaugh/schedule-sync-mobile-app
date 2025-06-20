@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { Task } from "@/hooks/useTasks";
 import { Clock, Edit, CheckCircle, MoreVertical, X, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { format } from "date-fns";
+import { format, addDays, subDays, isSameDay } from "date-fns";
+import { DateNavigation } from "@/components/calendar/DateNavigation";
 
 interface ScheduledTasksProps {
   tasks: Task[];
@@ -32,24 +34,51 @@ const formatDuration = (minutes: number): string => {
 };
 
 export const ScheduledTasks = ({ tasks, onEditTask, onCompleteTask, onUnscheduleTask }: ScheduledTasksProps) => {
-  if (tasks.length === 0) {
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Filter tasks for the current date
+  const tasksForCurrentDate = tasks.filter(task => 
+    task.scheduledDate && isSameDay(task.scheduledDate, currentDate)
+  );
+
+  const handleToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  if (tasksForCurrentDate.length === 0) {
     return (
-      <div className="text-center py-12">
-        <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No scheduled tasks</h3>
-        <p className="text-gray-500">Schedule tasks from the Tasks tab or drag them to the calendar!</p>
+      <div className="space-y-4">
+        <DateNavigation
+          currentDate={currentDate}
+          onPreviousDay={() => setCurrentDate(subDays(currentDate, 1))}
+          onNextDay={() => setCurrentDate(addDays(currentDate, 1))}
+          onToday={handleToday}
+          title={format(currentDate, 'EEEE, MMMM d, yyyy')}
+        />
+
+        <div className="text-center py-12">
+          <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No scheduled tasks</h3>
+          <p className="text-gray-500">Schedule tasks from the Tasks tab or drag them to the calendar!</p>
+        </div>
       </div>
     );
   }
 
-  const sortedTasks = tasks.sort((a, b) => {
+  const sortedTasks = tasksForCurrentDate.sort((a, b) => {
     if (!a.scheduledDate || !b.scheduledDate) return 0;
     return a.scheduledDate.getTime() - b.scheduledDate.getTime();
   });
 
   return (
     <div className="space-y-3">
-      <h3 className="text-lg font-semibold text-gray-900">Scheduled Tasks</h3>
+      <DateNavigation
+        currentDate={currentDate}
+        onPreviousDay={() => setCurrentDate(subDays(currentDate, 1))}
+        onNextDay={() => setCurrentDate(addDays(currentDate, 1))}
+        onToday={handleToday}
+        title={format(currentDate, 'EEEE, MMMM d, yyyy')}
+      />
       
       {sortedTasks.map((task) => (
         <Card 

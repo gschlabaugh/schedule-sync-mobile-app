@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { Task } from "@/hooks/useTasks";
-import { Clock, Edit, Trash2, CheckCircle, MoreVertical, ChevronLeft, ChevronRight } from "lucide-react";
+import { Clock, Edit, Trash2, CheckCircle, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -10,7 +9,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { format, addDays, subDays, isSameDay } from "date-fns";
+import { addDays, subDays, isSameDay } from "date-fns";
+import { DateNavigation } from "@/components/calendar/DateNavigation";
+import { format } from "date-fns";
 
 interface TaskListProps {
   tasks: Task[];
@@ -90,31 +91,20 @@ export const TaskList = ({ tasks, onEditTask, onDeleteTask, onCompleteTask }: Ta
 
   const tasksForCurrentDate = getTasksForDate(currentDate);
 
+  const handleToday = () => {
+    setCurrentDate(new Date());
+  };
+
   if (tasksForCurrentDate.length === 0) {
     return (
       <div className="space-y-4">
-        {/* Date Navigation */}
-        <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setCurrentDate(subDays(currentDate, 1))}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          
-          <h2 className="text-lg font-semibold text-gray-900">
-            {format(currentDate, 'EEEE, MMMM d, yyyy')}
-          </h2>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setCurrentDate(addDays(currentDate, 1))}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        <DateNavigation
+          currentDate={currentDate}
+          onPreviousDay={() => setCurrentDate(subDays(currentDate, 1))}
+          onNextDay={() => setCurrentDate(addDays(currentDate, 1))}
+          onToday={handleToday}
+          title={format(currentDate, 'EEEE, MMMM d, yyyy')}
+        />
 
         <div className="text-center py-12">
           <CheckCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
@@ -127,28 +117,13 @@ export const TaskList = ({ tasks, onEditTask, onDeleteTask, onCompleteTask }: Ta
 
   return (
     <div className="space-y-3">
-      {/* Date Navigation */}
-      <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setCurrentDate(subDays(currentDate, 1))}
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        
-        <h2 className="text-lg font-semibold text-gray-900">
-          {format(currentDate, 'EEEE, MMMM d, yyyy')}
-        </h2>
-        
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setCurrentDate(addDays(currentDate, 1))}
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
+      <DateNavigation
+        currentDate={currentDate}
+        onPreviousDay={() => setCurrentDate(subDays(currentDate, 1))}
+        onNextDay={() => setCurrentDate(addDays(currentDate, 1))}
+        onToday={handleToday}
+        title={format(currentDate, 'EEEE, MMMM d, yyyy')}
+      />
       
       {tasksForCurrentDate.map((task) => {
         const textColor = getContrastColor(task.color);
