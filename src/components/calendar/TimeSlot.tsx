@@ -1,6 +1,6 @@
 
 import { Task } from "@/hooks/useTasks";
-import { addMinutes, format, isSameDay } from "date-fns";
+import { isSameDay } from "date-fns";
 
 interface TimeSlotProps {
   time: string;
@@ -32,21 +32,21 @@ export const TimeSlot = ({
 
   return (
     <div
-      className="flex items-start gap-4 min-h-[80px] border-b border-gray-100 last:border-b-0"
+      className="flex items-start gap-4 min-h-[100px] border-b border-gray-100 last:border-b-0"
       onDrop={(e) => onDrop(e, dateTime)}
       onDragOver={(e) => onDragOver(e, dateTime)}
       onDragLeave={onDragLeave}
     >
-      <div className="w-32 text-sm text-gray-500 text-right pt-2">
+      <div className="w-20 text-sm text-gray-500 text-right pt-3 flex-shrink-0">
         {time}
       </div>
       
-      <div className="flex-1 relative min-h-[80px]">
+      <div className="flex-1 relative min-h-[100px]">
         {tasksAtTime.length > 0 ? (
           children
         ) : (
           <div 
-            className={`h-[76px] border-2 border-dashed rounded-lg flex items-center justify-center text-xs text-gray-400 cursor-pointer hover:bg-gray-50 ${
+            className={`h-[96px] border-2 border-dashed rounded-lg flex items-center justify-center text-xs text-gray-400 cursor-pointer hover:bg-gray-50 ${
               isPreviewSlot ? 'border-blue-400 bg-blue-50' : 'border-gray-200'
             }`}
             onClick={() => onSlotClick(dateTime)}

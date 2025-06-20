@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Task } from "@/hooks/useTasks";
 import { addDays, subDays, startOfDay, addMinutes, isSameDay } from "date-fns";
@@ -39,7 +38,7 @@ export const CalendarView = ({
 
   const unscheduledTasks = tasks.filter(task => !task.scheduledDate && !task.completed);
 
-  // Generate time slots from 6:00 AM to 11:00 PM
+  // Generate time slots from 6:00 AM to 11:00 PM with larger slots
   const timeSlots = Array.from({ length: 34 }, (_, i) => {
     const hour = Math.floor(i / 2) + 6;
     const minutes = (i % 2) * 30;
@@ -106,7 +105,7 @@ export const CalendarView = ({
     if (!resizing) return;
     
     const deltaY = e.clientY - resizeStartY.current;
-    const minutesPerPixel = 30 / 80;
+    const minutesPerPixel = 30 / 100;
     const deltaMinutes = Math.round(deltaY * minutesPerPixel / 30) * 30;
     
     let newDuration = originalDuration.current;
@@ -176,6 +175,7 @@ export const CalendarView = ({
                   key={task.id}
                   task={task}
                   slot={slot}
+                  tasksAtTime={tasksAtTime}
                   resizing={resizing}
                   previewDuration={previewDuration}
                   onDragStart={handleDragStart}
