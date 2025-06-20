@@ -1,7 +1,7 @@
 
 import { useState, useRef } from "react";
 import { Task } from "@/hooks/useTasks";
-import { ChevronLeft, ChevronRight, Clock, CheckCircle, MoreVertical, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, CheckCircle, MoreVertical, X, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -69,8 +69,9 @@ export const CalendarView = ({
 
   const unscheduledTasks = tasks.filter(task => !task.scheduledDate && !task.completed);
 
-  const timeSlots = Array.from({ length: 48 }, (_, i) => {
-    const hour = Math.floor(i / 2);
+  // Generate time slots from 6:00 AM to 11:00 PM (34 slots of 30 minutes each)
+  const timeSlots = Array.from({ length: 34 }, (_, i) => {
+    const hour = Math.floor(i / 2) + 6; // Start at 6 AM
     const minutes = (i % 2) * 30;
     const date = addMinutes(startOfDay(currentDate), hour * 60 + minutes);
     const timeLabel = format(date, 'h:mm a');
@@ -121,6 +122,7 @@ export const CalendarView = ({
 
   const handleResizeStart = (e: React.MouseEvent, taskId: string, edge: 'top' | 'bottom') => {
     e.stopPropagation();
+    e.preventDefault();
     const task = tasks.find(t => t.id === taskId);
     if (task) {
       setResizing({ taskId, edge });
@@ -134,7 +136,7 @@ export const CalendarView = ({
     if (!resizing) return;
     
     const deltaY = e.clientY - resizeStartY.current;
-    const minutesPerPixel = 2;
+    const minutesPerPixel = 1;
     const deltaMinutes = Math.round(deltaY * minutesPerPixel / 30) * 30; // Snap to 30-minute increments
     
     let newDuration = originalDuration.current;
@@ -147,7 +149,8 @@ export const CalendarView = ({
     setPreviewDuration(newDuration);
   };
 
-  const handleResizeEnd = () => {
+  const handleResizeEnd = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (resizing && previewDuration !== null) {
       onUpdateTask(resizing.taskId, { duration: previewDuration });
     }
@@ -230,7 +233,7 @@ export const CalendarView = ({
           return (
             <div
               key={slot.time}
-              className="flex items-start gap-4 min-h-[40px] border-b border-gray-100 last:border-b-0"
+              className="flex items-start gap-4 min-h-[50px] border-b border-gray-100 last:border-b-0"
               onDrop={(e) => handleDrop(e, slot.dateTime)}
               onDragOver={(e) => handleDragOver(e, slot.dateTime)}
               onDragLeave={handleDragLeave}
@@ -239,13 +242,14 @@ export const CalendarView = ({
                 {slot.time}
               </div>
               
-              <div className="flex-1 relative min-h-[40px]">
+              <div className="flex-1 relative min-h-[50px]">
                 {tasksAtTime.length > 0 ? (
                   tasksAtTime.map(task => {
                     const taskStart = task.scheduledDate!;
                     const currentDuration = resizing?.taskId === task.id && previewDuration ? previewDuration : task.duration;
-                    const taskHeight = Math.max(40, (currentDuration / 30) * 40);
+                    const taskHeight = Math.max(50, (currentDuration / 30) * 50); // 50px per 30-minute slot
                     const textColor = getContrastColor(task.color);
+                    const taskEnd = addMinutes(taskStart, currentDuration);
                     
                     // Only show if this slot is the start of the task
                     if (!isSameDay(taskStart, slot.dateTime) || 
@@ -292,6 +296,9 @@ export const CalendarView = ({
                             <div className="text-sm font-medium" style={{ color: textColor }}>
                               {task.completed && '✓ '}{task.title}
                             </div>
+                            <div className="text-xs mt-1" style={{ color: textColor }}>
+                              {format(taskStart, 'h:mm a')} - {format(taskEnd, 'h:mm a')}
+                            </div>
                             <div className="text-xs flex items-center gap-1 mt-1" style={{ color: textColor }}>
                               <Clock className="h-3 w-3" />
                               {formatDuration(currentDuration)}
@@ -327,7 +334,7 @@ export const CalendarView = ({
                     );
                   })
                 ) : (
-                  <div className={`h-10 border-2 border-dashed rounded-lg flex items-center justify-center text-xs text-gray-400 ${
+                  <div className={`h-12 border-2 border-dashed rounded-lg flex items-center justify-center text-xs text-gray-400 ${
                     isPreviewSlot ? 'border-blue-400 bg-blue-50' : 'border-gray-200'
                   }`}>
                     {isPreviewSlot ? 'Drop here' : 'Drop task here'}

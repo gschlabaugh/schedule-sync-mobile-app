@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { format } from "date-fns";
 
 interface TaskListProps {
   tasks: Task[];
@@ -57,6 +58,13 @@ export const TaskList = ({ tasks, onEditTask, onDeleteTask, onCompleteTask }: Ta
 
   return (
     <div className="space-y-3">
+      {/* Date and day header */}
+      <div className="text-center py-2 border-b border-gray-200">
+        <h2 className="text-lg font-semibold text-gray-900">
+          {format(new Date(), 'EEEE, MMMM d, yyyy')}
+        </h2>
+      </div>
+      
       {tasks.map((task) => {
         const textColor = getContrastColor(task.color);
         return (
