@@ -233,7 +233,7 @@ export const CalendarView = ({
           return (
             <div
               key={slot.time}
-              className="flex items-start gap-4 min-h-[50px] border-b border-gray-100 last:border-b-0"
+              className="flex items-start gap-4 min-h-[60px] border-b border-gray-100 last:border-b-0"
               onDrop={(e) => handleDrop(e, slot.dateTime)}
               onDragOver={(e) => handleDragOver(e, slot.dateTime)}
               onDragLeave={handleDragLeave}
@@ -242,12 +242,12 @@ export const CalendarView = ({
                 {slot.time}
               </div>
               
-              <div className="flex-1 relative min-h-[50px]">
+              <div className="flex-1 relative min-h-[60px]">
                 {tasksAtTime.length > 0 ? (
                   tasksAtTime.map(task => {
                     const taskStart = task.scheduledDate!;
                     const currentDuration = resizing?.taskId === task.id && previewDuration ? previewDuration : task.duration;
-                    const taskHeight = Math.max(50, (currentDuration / 30) * 50); // 50px per 30-minute slot
+                    const taskHeight = Math.max(60, (currentDuration / 30) * 60); // 60px per 30-minute slot
                     const textColor = getContrastColor(task.color);
                     const taskEnd = addMinutes(taskStart, currentDuration);
                     
@@ -265,7 +265,7 @@ export const CalendarView = ({
                         onDragStart={(e) => handleDragStart(e, task)}
                         className={`p-3 border-2 cursor-move relative group ${
                           task.completed ? 'opacity-75 line-through' : ''
-                        }`}
+                        } absolute top-0 left-0 right-0 z-10`}
                         style={{ 
                           backgroundColor: task.color,
                           borderColor: task.color,
@@ -334,7 +334,7 @@ export const CalendarView = ({
                     );
                   })
                 ) : (
-                  <div className={`h-12 border-2 border-dashed rounded-lg flex items-center justify-center text-xs text-gray-400 ${
+                  <div className={`h-14 border-2 border-dashed rounded-lg flex items-center justify-center text-xs text-gray-400 ${
                     isPreviewSlot ? 'border-blue-400 bg-blue-50' : 'border-gray-200'
                   }`}>
                     {isPreviewSlot ? 'Drop here' : 'Drop task here'}

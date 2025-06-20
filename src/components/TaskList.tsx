@@ -1,6 +1,7 @@
 
+import { useState } from "react";
 import { Task } from "@/hooks/useTasks";
-import { Clock, Edit, Trash2, CheckCircle, MoreVertical } from "lucide-react";
+import { Clock, Edit, Trash2, CheckCircle, MoreVertical, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -9,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { format } from "date-fns";
+import { format, addDays, subDays, isSameDay } from "date-fns";
 
 interface TaskListProps {
   tasks: Task[];
@@ -46,26 +47,110 @@ const formatDuration = (minutes: number): string => {
 };
 
 export const TaskList = ({ tasks, onEditTask, onDeleteTask, onCompleteTask }: TaskListProps) => {
-  if (tasks.length === 0) {
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Get tasks for the current date - either unscheduled tasks for today, or recurring tasks for the selected date
+  const getTasksForDate = (date: Date) => {
+    return tasks.filter(task => {
+      // Show unscheduled non-completed tasks
+      if (!task.scheduledDate && !task.completed) {
+        // If it's a recurring instance, check if it should appear on this date
+        if (task.isRecurringInstance) {
+          return isSameDay(task.createdAt, date);
+        }
+        // If it's a recurring parent task, check if it should appear on this date
+        if (task.recurrence) {
+          return shouldShowRecurringTask(task, date);
+        }
+        // For non-recurring tasks, only show on today
+        return isSameDay(new Date(), date);
+      }
+      return false;
+    });
+  };
+
+  const shouldShowRecurringTask = (task: Task, date: Date): boolean => {
+    if (!task.recurrence) return false;
+
+    const dayOfWeek = date.getDay();
+    
+    switch (task.recurrence.type) {
+      case 'daily':
+        return true;
+      case 'weekly':
+        return dayOfWeek === 1; // Show on Mondays for weekly tasks
+      case 'monthly':
+        return date.getDate() === 1; // Show on first of month
+      case 'weekdays':
+        return task.recurrence.weekdays?.includes(dayOfWeek) || false;
+      default:
+        return false;
+    }
+  };
+
+  const tasksForCurrentDate = getTasksForDate(currentDate);
+
+  if (tasksForCurrentDate.length === 0) {
     return (
-      <div className="text-center py-12">
-        <CheckCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No unscheduled tasks</h3>
-        <p className="text-gray-500">Create a new task to get started!</p>
+      <div className="space-y-4">
+        {/* Date Navigation */}
+        <div className="flex items-center justify-between border-b border-gray-200 pb-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setCurrentDate(subDays(currentDate, 1))}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          
+          <h2 className="text-lg font-semibold text-gray-900">
+            {format(currentDate, 'EEEE, MMMM d, yyyy')}
+          </h2>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setCurrentDate(addDays(currentDate, 1))}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="text-center py-12">
+          <CheckCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No unscheduled tasks</h3>
+          <p className="text-gray-500">Create a new task to get started!</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      {/* Date and day header */}
-      <div className="text-center py-2 border-b border-gray-200">
+      {/* Date Navigation */}
+      <div className="flex items-center justify-between border-b border-gray-200 pb-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setCurrentDate(subDays(currentDate, 1))}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        
         <h2 className="text-lg font-semibold text-gray-900">
-          {format(new Date(), 'EEEE, MMMM d, yyyy')}
+          {format(currentDate, 'EEEE, MMMM d, yyyy')}
         </h2>
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setCurrentDate(addDays(currentDate, 1))}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
       </div>
       
-      {tasks.map((task) => {
+      {tasksForCurrentDate.map((task) => {
         const textColor = getContrastColor(task.color);
         return (
           <Card 
