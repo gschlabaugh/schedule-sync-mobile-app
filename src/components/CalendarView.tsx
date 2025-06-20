@@ -35,6 +35,19 @@ const getContrastColor = (backgroundColor: string) => {
   return luminance > 0.5 ? '#000000' : '#FFFFFF';
 };
 
+const formatDuration = (minutes: number): string => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  
+  if (hours === 0) {
+    return `${mins} min`;
+  } else if (mins === 0) {
+    return `${hours}h`;
+  } else {
+    return `${hours}h ${mins}m`;
+  }
+};
+
 export const CalendarView = ({ 
   tasks, 
   onScheduleTask, 
@@ -46,6 +59,7 @@ export const CalendarView = ({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [resizing, setResizing] = useState<{ taskId: string; edge: 'top' | 'bottom' } | null>(null);
   const [previewDuration, setPreviewDuration] = useState<number | null>(null);
+  const [dragPreview, setDragPreview] = useState<{ taskId: string; dateTime: Date } | null>(null);
   const resizeStartY = useRef<number>(0);
   const originalDuration = useRef<number>(0);
 
@@ -55,9 +69,10 @@ export const CalendarView = ({
 
   const unscheduledTasks = tasks.filter(task => !task.scheduledDate && !task.completed);
 
-  const timeSlots = Array.from({ length: 24 }, (_, i) => {
-    const hour = i;
-    const date = addMinutes(startOfDay(currentDate), hour * 60);
+  const timeSlots = Array.from({ length: 48 }, (_, i) => {
+    const hour = Math.floor(i / 2);
+    const minutes = (i % 2) * 30;
+    const date = addMinutes(startOfDay(currentDate), hour * 60 + minutes);
     const timeLabel = format(date, 'h:mm a');
     return {
       time: timeLabel,
@@ -79,16 +94,25 @@ export const CalendarView = ({
     e.dataTransfer.setData('application/task-source', task.scheduledDate ? 'scheduled' : 'unscheduled');
   };
 
+  const handleDragOver = (e: React.DragEvent, dateTime: Date) => {
+    e.preventDefault();
+    const taskId = e.dataTransfer.getData('text/plain');
+    if (taskId) {
+      setDragPreview({ taskId, dateTime });
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragPreview(null);
+  };
+
   const handleDrop = (e: React.DragEvent, dateTime: Date) => {
     e.preventDefault();
     const taskId = e.dataTransfer.getData('text/plain');
     if (taskId) {
       onScheduleTask(taskId, dateTime);
     }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
+    setDragPreview(null);
   };
 
   const handleUnscheduleTask = (taskId: string) => {
@@ -111,13 +135,13 @@ export const CalendarView = ({
     
     const deltaY = e.clientY - resizeStartY.current;
     const minutesPerPixel = 2;
-    const deltaMinutes = Math.round(deltaY * minutesPerPixel);
+    const deltaMinutes = Math.round(deltaY * minutesPerPixel / 30) * 30; // Snap to 30-minute increments
     
     let newDuration = originalDuration.current;
     if (resizing.edge === 'bottom') {
-      newDuration = Math.max(15, originalDuration.current + deltaMinutes);
+      newDuration = Math.max(30, Math.min(480, originalDuration.current + deltaMinutes));
     } else {
-      newDuration = Math.max(15, originalDuration.current - deltaMinutes);
+      newDuration = Math.max(30, Math.min(480, originalDuration.current - deltaMinutes));
     }
     
     setPreviewDuration(newDuration);
@@ -186,7 +210,7 @@ export const CalendarView = ({
                   </div>
                   <div className="text-xs flex items-center gap-1 mt-1" style={{ color: textColor }}>
                     <Clock className="h-3 w-3" />
-                    {task.duration} min
+                    {formatDuration(task.duration)}
                   </div>
                 </Card>
               );
@@ -196,31 +220,37 @@ export const CalendarView = ({
       )}
 
       {/* Calendar Grid */}
-      <div className="space-y-1">
+      <div className="space-y-0">
         {timeSlots.map((slot) => {
           const tasksAtTime = getTasksAtTime(slot.dateTime);
+          const isPreviewSlot = dragPreview && isSameDay(dragPreview.dateTime, slot.dateTime) && 
+                               dragPreview.dateTime.getHours() === slot.dateTime.getHours() &&
+                               dragPreview.dateTime.getMinutes() === slot.dateTime.getMinutes();
           
           return (
             <div
               key={slot.time}
-              className="flex items-start gap-4 min-h-[60px] border-b border-gray-100 last:border-b-0"
+              className="flex items-start gap-4 min-h-[40px] border-b border-gray-100 last:border-b-0"
               onDrop={(e) => handleDrop(e, slot.dateTime)}
-              onDragOver={handleDragOver}
+              onDragOver={(e) => handleDragOver(e, slot.dateTime)}
+              onDragLeave={handleDragLeave}
             >
-              <div className="w-24 text-sm text-gray-500 text-right pt-2">
+              <div className="w-32 text-sm text-gray-500 text-right pt-2">
                 {slot.time}
               </div>
               
-              <div className="flex-1 relative">
+              <div className="flex-1 relative min-h-[40px]">
                 {tasksAtTime.length > 0 ? (
                   tasksAtTime.map(task => {
                     const taskStart = task.scheduledDate!;
                     const currentDuration = resizing?.taskId === task.id && previewDuration ? previewDuration : task.duration;
-                    const taskHeight = Math.max(60, (currentDuration / 60) * 60);
+                    const taskHeight = Math.max(40, (currentDuration / 30) * 40);
                     const textColor = getContrastColor(task.color);
                     
                     // Only show if this slot is the start of the task
-                    if (!isSameDay(taskStart, slot.dateTime) || taskStart.getHours() !== slot.dateTime.getHours()) {
+                    if (!isSameDay(taskStart, slot.dateTime) || 
+                        taskStart.getHours() !== slot.dateTime.getHours() ||
+                        taskStart.getMinutes() !== slot.dateTime.getMinutes()) {
                       return null;
                     }
                     
@@ -251,9 +281,9 @@ export const CalendarView = ({
                         {/* Duration preview during resize */}
                         {resizing?.taskId === task.id && previewDuration && (
                           <div 
-                            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs"
+                            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs z-10"
                           >
-                            {Math.floor(previewDuration / 60)}h {previewDuration % 60}m
+                            {formatDuration(previewDuration)}
                           </div>
                         )}
                         
@@ -264,7 +294,7 @@ export const CalendarView = ({
                             </div>
                             <div className="text-xs flex items-center gap-1 mt-1" style={{ color: textColor }}>
                               <Clock className="h-3 w-3" />
-                              {currentDuration} min
+                              {formatDuration(currentDuration)}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
@@ -297,8 +327,19 @@ export const CalendarView = ({
                     );
                   })
                 ) : (
-                  <div className="h-12 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center text-xs text-gray-400">
-                    Drop task here
+                  <div className={`h-10 border-2 border-dashed rounded-lg flex items-center justify-center text-xs text-gray-400 ${
+                    isPreviewSlot ? 'border-blue-400 bg-blue-50' : 'border-gray-200'
+                  }`}>
+                    {isPreviewSlot ? 'Drop here' : 'Drop task here'}
+                  </div>
+                )}
+                
+                {/* Preview for drag and drop */}
+                {isPreviewSlot && dragPreview && (
+                  <div className="absolute inset-0 border-2 border-blue-400 bg-blue-100 bg-opacity-50 rounded-lg pointer-events-none">
+                    <div className="p-2 text-xs text-blue-700">
+                      Drop task here
+                    </div>
                   </div>
                 )}
               </div>

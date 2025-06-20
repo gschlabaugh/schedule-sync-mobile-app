@@ -31,6 +31,19 @@ const getContrastColor = (backgroundColor: string) => {
   return luminance > 0.5 ? '#000000' : '#FFFFFF';
 };
 
+const formatDuration = (minutes: number): string => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  
+  if (hours === 0) {
+    return `${mins} min`;
+  } else if (mins === 0) {
+    return `${hours}h`;
+  } else {
+    return `${hours}h ${mins}m`;
+  }
+};
+
 export const TaskList = ({ tasks, onEditTask, onDeleteTask, onCompleteTask }: TaskListProps) => {
   if (tasks.length === 0) {
     return (
@@ -68,7 +81,7 @@ export const TaskList = ({ tasks, onEditTask, onDeleteTask, onCompleteTask }: Ta
                 <div className="flex items-center gap-3 mt-2">
                   <div className="flex items-center gap-1 text-xs" style={{ color: textColor }}>
                     <Clock className="h-3 w-3" />
-                    {task.duration} min
+                    {formatDuration(task.duration)}
                   </div>
                   {task.recurrence && (
                     <div 

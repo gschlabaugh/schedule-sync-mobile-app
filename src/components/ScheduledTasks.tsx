@@ -18,6 +18,19 @@ interface ScheduledTasksProps {
   onUnscheduleTask: (taskId: string) => void;
 }
 
+const formatDuration = (minutes: number): string => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  
+  if (hours === 0) {
+    return `${mins} min`;
+  } else if (mins === 0) {
+    return `${hours}h`;
+  } else {
+    return `${hours}h ${mins}m`;
+  }
+};
+
 export const ScheduledTasks = ({ tasks, onEditTask, onCompleteTask, onUnscheduleTask }: ScheduledTasksProps) => {
   if (tasks.length === 0) {
     return (
@@ -70,7 +83,7 @@ export const ScheduledTasks = ({ tasks, onEditTask, onCompleteTask, onUnschedule
                 )}
                 <div className="flex items-center gap-1 text-xs" style={{ color: task.completed ? '#15803d' : task.color }}>
                   <Clock className="h-3 w-3" />
-                  {task.duration} min
+                  {formatDuration(task.duration)}
                 </div>
                 {task.recurrence && (
                   <div 
@@ -94,17 +107,15 @@ export const ScheduledTasks = ({ tasks, onEditTask, onCompleteTask, onUnschedule
             </div>
             
             <div className="flex items-center gap-2 ml-3">
-              {!task.completed && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onCompleteTask(task.id)}
-                  className="p-1 h-8 w-8"
-                  style={{ color: task.color }}
-                >
-                  <CheckCircle className="h-4 w-4" />
-                </Button>
-              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onCompleteTask(task.id)}
+                className="p-1 h-8 w-8"
+                style={{ color: task.completed ? '#15803d' : task.color }}
+              >
+                <CheckCircle className={`h-4 w-4 ${task.completed ? 'fill-current' : ''}`} />
+              </Button>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

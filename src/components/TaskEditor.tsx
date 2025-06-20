@@ -37,6 +37,19 @@ const WEEKDAYS = [
   { value: 0, label: 'Sunday' },
 ];
 
+const formatDuration = (minutes: number): string => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  
+  if (hours === 0) {
+    return `${mins} minutes`;
+  } else if (mins === 0) {
+    return `${hours} hour${hours > 1 ? 's' : ''}`;
+  } else {
+    return `${hours} hour${hours > 1 ? 's' : ''} ${mins} minutes`;
+  }
+};
+
 export const TaskEditor = ({ task, onSave, onCancel }: TaskEditorProps) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -85,19 +98,14 @@ export const TaskEditor = ({ task, onSave, onCancel }: TaskEditorProps) => {
     onSave(taskData);
   };
 
-  // Generate duration options from 15 minutes to 8 hours in 30-minute increments
-  const durationOptions = [
-    { value: 15, label: '15 minutes' },
-    { value: 30, label: '30 minutes' },
-    { value: 45, label: '45 minutes' },
-    ...Array.from({ length: 16 }, (_, i) => {
-      const hours = Math.floor((i + 2) / 2);
-      const minutes = ((i + 2) % 2) * 30;
-      const totalMinutes = hours * 60 + minutes;
-      const label = minutes === 0 ? `${hours} hour${hours > 1 ? 's' : ''}` : `${hours}.5 hours`;
-      return { value: totalMinutes, label };
-    })
-  ];
+  // Generate duration options from 30 minutes to 8 hours in 30-minute increments
+  const durationOptions = Array.from({ length: 16 }, (_, i) => {
+    const totalMinutes = (i + 1) * 30; // Start from 30 minutes
+    return { 
+      value: totalMinutes, 
+      label: formatDuration(totalMinutes)
+    };
+  });
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-4">
